@@ -16,22 +16,33 @@ class HearthstoneDecksPlugin(Star):
             # 若未找到本地数据，会自动从网络获取
             print('从炉石盒子获取到', len(decks), '个卡组数据！')
 
-            # 搜索卡组
+            # 检查是否获取到卡组数据
+            if len(decks) == 0:
+                yield event.plain_result("未获取到任何卡组数据，请检查网络连接或稍后再试。")
+                return
+
+            # 更新卡组数据
+            # decks.update()
+
+            # 调整搜索条件
             found = decks.search(
                 career='萨满',
                 mode=hsdata.MODE_STANDARD,
-                min_games=10000,
+                min_games=1000,  # 调整为较低的对战场次要求
                 win_rate_top_n=5)
             print('其中5个胜率最高的萨满卡组:')
             result_str = ""
-            for deck in found:
-                result_str += '{}: {} 场, {:.2%} 胜\n'.format(
-                    deck.name, deck.games, deck.win_rate)
+            if not found:
+                result_str = "未找到符合条件的萨满卡组。"
+            else:
+                for deck in found:
+                    result_str += '{}: {} 场, {:.2%} 胜\n'.format(
+                        deck.name, deck.games, deck.win_rate)
 
-            # 查看卡组中的卡牌
-            print('其中第一个卡组用了这些卡牌')
-            print(found[0].cards)
-            result_str += "\n第一个卡组的卡牌:\n" + str(found[0].cards)
+                # 查看卡组中的卡牌
+                print('其中第一个卡组用了这些卡牌')
+                print(found[0].cards)
+                result_str += "\n第一个卡组的卡牌:\n" + str(found[0].cards)
 
             yield event.plain_result(result_str)
 
