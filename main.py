@@ -1,21 +1,39 @@
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
-from astrbot.api.star import Context, Star, register
-from astrbot.api import logger
+from astrbot.api.all import *
 
-@register("helloworld", "YourName", "一个简单的 Hello World 插件", "1.0.0")
-class MyPlugin(Star):
+@register("hearthstone_decks", "Your Name", "炉石传说卡组插件", "1.0.0")
+class HearthstoneDecksPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-    
-    # 注册指令的装饰器。指令名为 helloworld。注册成功后，发送 `/helloworld` 就会触发这个指令，并回复 `你好, {user_name}!`
-    @filter.command("helloworld")
-    async def helloworld(self, event: AstrMessageEvent):
-        '''这是一个 hello world 指令''' # 这是 handler 的描述，将会被解析方便用户了解插件内容。建议填写。
-        user_name = event.get_sender_name()
-        message_str = event.message_str # 用户发的纯文本消息字符串
-        message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
-        logger.info(message_chain)
-        yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
 
-    async def terminate(self):
-        '''可选择实现 terminate 函数，当插件被卸载/停用时会调用。'''
+    @command("炉石卡组")
+    async def hearthstone_decks(self, event: AstrMessageEvent):
+        '''获取炉石传说萨满卡组信息'''
+        try:
+            import hsdata
+
+            # 获取卡组数据
+            decks = hsdata.HSBoxDecks()
+            # 若未找到本地数据，会自动从网络获取
+            print('从炉石盒子获取到', len(decks), '个卡组数据！')
+
+            # 搜索卡组
+            found = decks.search(
+                career='萨满',
+                mode=hsdata.MODE_STANDARD,
+                min_games=10000,
+                win_rate_top_n=5)
+            print('其中5个胜率最高的萨满卡组:')
+            result_str = ""
+            for deck in found:
+                result_str += '{}: {} 场, {:.2%} 胜\n'.format(
+                    deck.name, deck.games, deck.win_rate)
+
+            # 查看卡组中的卡牌
+            print('其中第一个卡组用了这些卡牌')
+            print(found[0].cards)
+            result_str += "\n第一个卡组的卡牌:\n" + str(found[0].cards)
+
+            yield event.plain_result(result_str)
+
+        except Exception as e:
+            yield event.plain_result(f"获取卡组信息时出错: {str(e)}")
